@@ -7,26 +7,36 @@ class Impossible(Exception):
     pass
 
 def solve(N: int, M: int, a: "List[int]", x: "List[int]", y: "List[int]"):
-    from heapq import merge
+    from heapq import heapreplace, heappop
     uf = UnionFind(N)
     for xx, yy in zip(x, y):
         uf.union(xx, yy)
 
     def f():
         aa = {r:iter(sorted(map(lambda x: a[x], m))) for r, m in uf.all_group_members().items()}
-        god = uf.find(0)
-        c = aa[god]
-        for r in uf.roots():
+        roots = sorted(uf.roots(), reverse=True, key=lambda x: uf.size(x))
+        god = uf.find(roots[0])
+        hq = [(next(aa[god]), aa[god])]
+        for r in roots[1:]:
+            if len(hq) == 0:
+                raise Impossible
             if uf.same(god, r):
                 continue
             uf.union(god, r)
+            s = hq[0]
+            yield s[0]
+            yield next(aa[r])
             try:
-                yield next(c)
-                yield next(aa[r])
+                heapreplace(hq, (next(aa[r]), aa[r]))
             except StopIteration:
-                raise Impossible
-            c = merge(c, aa[r])
+                heappop(hq)
+            try:
+                heapreplace(hq, (next(s[1]), s[1]))
+            except StopIteration:
+                heappop(hq)
+
     try:
+        print(list(f()))
         return sum(f())
     except Impossible:
         return NO
